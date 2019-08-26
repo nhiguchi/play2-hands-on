@@ -1,9 +1,17 @@
-languageCode = "ja-JP"
-title = "Play2 + Slick / ScalikeJDBCハンズオン"
-baseURL = "http://bizreach.github.io/play2-hands-on/"
+DefaultContentLanguage = "jp"
 theme = "hugo_theme_robust"
 metadataformat = "yaml"
 canonifyurls = true
-uglyurls = true
+uglyurls = false
 publishDir = "docs"
 copyright = "BizReach, Inc"
+
+[languages]
+  [languages.jp]
+    title = "Play2 + Slick / ScalikeJDBCハンズオン"
+    baseURL = "http://bizreach.github.io/play2-hands-on/"
+    weight = 1
+  [languages.en]
+    title = "Play2 + Slick / ScalikeJDBC HandsOn"
+    baseURL = "http://bizreach.github.io/play2-hands-on/en/"
+    weight = 2
