@@ -83,7 +83,7 @@ sbt run
 
 You can confirm the below image from browser http://localhost:9000/ . 
 
-![Play2のウェルカム画面](../images/play2.6-scalikejdbc3.2/welcome.png)
+![Play2 Welcome Page](../images/play2.6-scalikejdbc3.2/welcome.png)
 
 Check if `Welcome to Play!` is written on the page.
 

@@ -1,24 +1,24 @@
 ---
-title: Implement the edit page
+title: ユーザ登録・編集画面の実装
 ---
 
-Depending on whether the ID is specified in the request parameter, the following processing is performed.
+リクエストパラメータにIDが指定されているかどうかに応じて以下の処理を行います。
 
-* If ID is not present in request ⇒ Display the new registration screen
-* ID is present in request parameter ⇒ Search the `USERS` table and display the edit screen that displays the initialized user information.
+* リクエストパラメータにIDなし ⇒ 新規登録画面を表示します。
+* リクエストパラメータにIDあり ⇒ `USERS`テーブルを検索し、該当のユーザ情報を初期表示した編集画面を表示します。
 
-## Form
+## フォーム
 
-Define a `Form` to receive input values ​​from the screen. `Form` does not necessarily need to be defined in the controller, but it depends strongly on methods of the controller, so it is better to define it in the companion object of the controller class unless there is any specific reason.
+画面からの入力値を受け取るための`Form`を定義します。`Form`は必ずしもコントローラに定義する必要はないのですが、コントローラでの処理に強く依存するため特に理由がない限りコントローラクラスのコンパニオンオブジェクトに定義するとよいでしょう。
 
-Define the companion object in the same source file of `UserController` class.
+ここでは`UserController`と同じソースファイルに以下のようなコンパニオンオブジェクトを追加します。
 
 ```scala
 object UserController {
-  // case class for storing form values
+  // フォームの値を格納するケースクラス
   case class UserForm(id: Option[Long], name: String, companyId: Option[Int])
 
-  // data sent from form ⇔ case class conversion
+  // formから送信されたデータ ⇔ ケースクラスの変換を行う
   val userForm = Form(
     mapping(
       "id"        -> optional(longNumber),
@@ -29,17 +29,17 @@ object UserController {
 }
 ```
 
-A companion object is an object defined with the same name in the same file as a class or trait. The companion object and the class or trait corresponding to the companion object can access private members of each other. It is used to group common methods and classes used in classes and traits.
+コンパニオンオブジェクトとは、クラスやトレイトと同じファイル内に同じ名前で定義されたオブジェクトのことで、コンパニオンオブジェクトと対応するクラスやトレイトは互いにprivateなメンバーにアクセスできるなどの特徴があります。クラスやトレイトで使用する共通的なメソッドやクラス等を括り出したりするのに使います。
 
 > **POINT**
 >
-> * A companion object is an object defined with the same name in the same file as the class
-> * `Form` is similar to a Struts action form.
-> * A Validation (described later) is performed according to the mapping.
+> * コンパニオンオブジェクトとは、クラスと同じファイル内に同じ名前で定義されたオブジェクトのことです
+> * `Form`はStrutsのアクションフォームのようなものです
+> * マッピングに従ってバリデーション（後述）が行われます
 
-## View
+## ビュー
 
-Now, we will implement the `edit.scala.html` in the` views.user` package. It takes `Form` instance and` Seq[Companies]`, to be selected from the pull-down menu, as arguments.
+続いて`views.user`パッケージに`edit.scala.html`を実装します。引数には`Form`のインスタンスと、プルダウンで選択する会社情報を格納した`Seq`を受け取ります。
 
 ```html
 @(userForm: Form[controllers.UserController.UserForm], companies: Seq[models.Companies])(implicit request: MessagesRequestHeader)
@@ -48,7 +48,7 @@ Now, we will implement the `edit.scala.html` in the` views.user` package. It tak
 
 @main("ユーザ作成") {
 
-  @* If there is an ID, call the update process, if not, call the registration process *@
+  @* IDがある場合は更新処理、ない場合は登録処理を呼ぶ *@
   @form(CSRF(userForm("id").value.map(x => routes.UserController.update).getOrElse(routes.UserController.create)), 'class -> "container", 'role -> "form") {
     <fieldset>
       <div class="form-group">
@@ -70,31 +70,32 @@ Now, we will implement the `edit.scala.html` in the` views.user` package. It tak
 }
 ```
 
-This template accepts `MessagesRequestHeader` as an implicit argument, which is required for internationalization of messages by `inputText`. `inpuText` is helper function used to display the text field in the template. It will be passed implicitly if` MessagesControllerComponents` is DI in the controller. `MessagesRequestHeader` is not required in this hands-on, but you should remember it because it is necessary for internationalization of the Play2 application.
+このテンプレートでは暗黙的な引数として`MessagesRequestHeader`を受け取るようになっています。これはテンプレートでテキストフィールドを表示するために使用している`inputText`ヘルパーがメッセージ等の国際化のために必要とするもので、コントローラに`MessagesControllerComponents`をDIしておくと暗黙的に渡されます。このハンズオンでは特に使用しませんが、Play2アプリケーションの国際化対応に必要になるものですので覚えておくとよいでしょう。
 
-## Controller
+## コントローラ
 
-Now, implement the `edit` method in `UserController`. If `id` is not specified in argument, then an empty` Form` is defined otherwise `Form#fill` method sets the initial value in the` Form` and calls the template.
+最後に`UserController`の`edit`メソッドを実装します。引数`id`が指定されていた場合は空の`Form`、指定されていた場合は`Form#fill`メソッドで`Form`に初期表示する値をセットしたうえでテンプレートを呼び出すようにします。
 
 ```scala
-// add import statement to refer to Form defined in companion object
+// コンパニオンオブジェクトに定義したFormを参照するためにimport文を追加
 import UserController._
 
 private val c = Companies.syntax("c")
 
 def edit(id: Option[Long]) = Action { implicit request =>
   DB.readOnly { implicit session =>
+    // リクエストパラメータにIDが存在する場合
     val form = id match {
-      // if ID is not passed, then return the new registration form 
+      // IDが渡されなかった場合は新規登録フォーム
       case None => userForm
-      // Retrieve 1 user information from ID and bind it into the form
+      // IDからユーザ情報を1件取得してフォームに詰める
       case Some(id) => Users.find(id) match {
         case Some(user) => userForm.fill(UserForm(Some(user.id), user.name, user.companyId))
         case None => userForm
       }
     }
 
-    // get list of companies to be displayed in the pull-down box
+    // プルダウンに表示する会社のリストを取得
     val companies = withSQL {
       select.from(Companies as c).orderBy(c.id.asc)
     }.map(Companies(c.resultName)).list().apply()
@@ -104,19 +105,18 @@ def edit(id: Option[Long]) = Action { implicit request =>
 }
 ```
 
-In the above code, if the parameter `id` is not specified (in the case of` None`), then an empty form for new registration is specified, and if ID is provided (in the case of `Some (id)`), then the update form is used. At that time, `Users.find (id)` gets user information from DB to set into the update form. This method is a search method automatically generated by scalikejdbcGen. And in the above manner, basic CRUD processing can be implemented with the help of automatically generated methods.
+上記のコードではパラメータ`id`が指定されていなかった場合（`None`の場合）は新規登録用の空フォーム、指定されていた場合（`Some(id)`の場合）は更新用フォームを生成しています。このとき、`Users.find(id)`で更新用フォームに設定するためのユーザ情報をDBから取得しています。このメソッドはscalikejdbcGenで自動生成された検索用メソッドです。このように基本的なCRUD処理はQueryDSLを使わなくても自動生成されたメソッドで実装することができます。
 
-We can also rewrite the above method with QueryDSL.
+ちなみにこのメソッドをQueryDSLで書き直すと以下のようになります。
 
 ```scala
- // one item search can rewritten with QueryDSL
+// 1件検索をQueryDSLで書き直した場合
 withSQL {
   select.from(Users as u).where.eq(u.id, id)
 }.map(Users(u.resultName)).single.apply()
 ```
 
-
-In the following description, list of company is obtained.
+また、以下の記述では会社選択用のプルダウンリストに表示する会社情報の一覧を取得しています。
 
 ```scala
 val companies = withSQL {
@@ -124,16 +124,16 @@ val companies = withSQL {
 }.map(Companies(c.resultName)).list().apply()
 ```
 
-The QueryDSL of `select.from(Companies as c).orderBy(c.id.asc)` in the above code has the same meaning as the following SQL.
+上記のコードの`select.from(Companies as c).orderBy(c.id.asc)`というQueryDSLは以下のSQLと同じ意味になります。
 
 ```sql
 SELECT * FROM COMPANIES ORDER BY ID
 ```
 
-## Run
+## 実行
 
-Click the new registration or username link from the list page in the browser, and confirm that the registration screen or the edit screen are displayed accordingly as shown below.
+ここまで実装したらブラウザで一覧画面から新規作成やユーザ名のリンクをクリックし、以下のように登録画面と編集画面が表示されることを確認します。
 
-![User Registration Pae](../images/play2.6-scalikejdbc3.2/register_form.png)
+![ユーザ登録画面](../images/play2.6-scalikejdbc3.2/register_form.png)
 
-![User Edit Page](../images/play2.6-scalikejdbc3.2/edit_form.png)
+![ユーザ編集画面](../images/play2.6-scalikejdbc3.2/edit_form.png)

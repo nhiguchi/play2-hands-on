@@ -110,13 +110,13 @@ SELECT * FROM USERS ORDER BY ID
 >
 > * Play describes the actions in `Action {...}`
 >   * `implicit request` is a description required to use an HTTP request implicitly in action processing.
-> * `Ok`に`views.html.・・・`と記述することで、表示したいHTMLのテンプレートを指定できます
->   * 引数にはテンプレートに渡すパラメータを指定します
-> * ScalikeJDBCでは`DB.readOnly { ... }`で参照専用のセッションを取得することができます
->  * `withSQL { ... }`でSQLをタイプセーフに記述するQueryDSLを使用することができます
+> * We can specify the HTML template that we want to display by writing `views.html ....` in `Ok`.
+>   * The argument specifies the parameter passed to the template.
+> * In ScalikeJDBC, we can get a read-only session with `DB.readOnly {...}`
+>  * We can use QueryDSL for writing typesafe SQL with `withSQL {...}`
 
-## 実行
+## Run
 
-ここまで実装したらブラウザから http://localhost:9000/user/list にアクセスします（`sbt run`を実行していない場合は実行してください）。すると以下のような画面が表示されるはずです。
+After the implementation, access to http://localhost:9000/user/list .(run `sbt run` if sbt process is not running), then you can see the following screen. 
 
-![ユーザ一覧画面](../images/play2.6-scalikejdbc3.2/user_list.png)
+![User List Page](../images/play2.6-scalikejdbc3.2/user_list.png)
